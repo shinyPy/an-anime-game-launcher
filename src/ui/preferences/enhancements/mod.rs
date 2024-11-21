@@ -7,6 +7,7 @@ use relm4::factory::{
 };
 
 use adw::prelude::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anime_launcher_sdk::config::ConfigExt;
 use anime_launcher_sdk::genshin::config::Config;
@@ -490,61 +491,89 @@ impl SimpleAsyncComponent for EnhancementsApp {
 
             add = &adw::PreferencesGroup {
                 set_title: &tr!("discord-rpc"),
-
+    
                 adw::ActionRow {
                     set_title: &tr!("enabled"),
                     set_subtitle: &tr!("discord-rpc-description"),
-
+    
                     add_suffix = &gtk::Switch {
                         set_valign: gtk::Align::Center,
                         set_active: CONFIG.launcher.discord_rpc.enabled,
-
+    
                         connect_state_notify => |switch| {
                             if is_ready() {
                                 if let Ok(mut config) = Config::get() {
                                     config.launcher.discord_rpc.enabled = switch.is_active();
-
+    
                                     Config::update(config);
                                 }
                             }
                         }
                     }
                 },
-
+    
                 #[local_ref]
                 discord_rpc_icons -> adw::ExpanderRow {
                     set_title: &tr!("icon")
                 },
-
+    
                 adw::EntryRow {
                     set_title: &tr!("title"),
                     set_text: &CONFIG.launcher.discord_rpc.title,
-
+    
                     connect_changed: |row| {
                         if is_ready() {
                             if let Ok(mut config) = Config::get() {
                                 config.launcher.discord_rpc.title = row.text().to_string();
-
+    
                                 Config::update(config);
                             }
                         }
                     }
                 },
-
+    
                 adw::EntryRow {
                     set_title: &tr!("description"),
                     set_text: &CONFIG.launcher.discord_rpc.subtitle,
-
+    
                     connect_changed: |row| {
                         if is_ready() {
                             if let Ok(mut config) = Config::get() {
                                 config.launcher.discord_rpc.subtitle = row.text().to_string();
-
+    
                                 Config::update(config);
                             }
                         }
                     }
-                }
+                },
+    
+                adw::ActionRow {
+                    set_title: &tr!("timestamp"),
+                    set_subtitle: &tr!("timestamp-description"),
+                
+                    add_suffix = &gtk::Switch {
+                        set_valign: gtk::Align::Center,
+                        set_active: CONFIG.launcher.discord_rpc.start_timestamp.is_some(),
+                
+                        connect_state_notify => |switch| {
+                            if is_ready() {
+                                if let Ok(mut config) = Config::get() {
+                                    if switch.is_active() {
+                                        let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                        config.launcher.discord_rpc.start_timestamp = Some(start_time);
+                                        config.launcher.discord_rpc.end_timestamp = None;
+                                    } else {
+                                        let end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                        config.launcher.discord_rpc.end_timestamp = Some(end_time);
+                                    }
+                
+                                    Config::update(config);
+                                }
+                            }
+                        }
+                    }
+                },
+    
             },
 
             add = &adw::PreferencesGroup {
