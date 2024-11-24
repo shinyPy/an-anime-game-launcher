@@ -555,19 +555,37 @@ impl SimpleAsyncComponent for EnhancementsApp {
                         set_valign: gtk::Align::Center,
                         set_active: CONFIG.launcher.discord_rpc.start_timestamp.is_some(),
                 
-                        connect_state_notify => |switch| {
+                        connect_state_notify => move |switch| {
                             if is_ready() {
                                 if let Ok(mut config) = Config::get() {
                                     if switch.is_active() {
-                                        let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                        // Set the start timestamp to the current time
+                                        let start_time = SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .expect("Time went backwards")
+                                            .as_secs() as i64;
                                         config.launcher.discord_rpc.start_timestamp = Some(start_time);
                                         config.launcher.discord_rpc.end_timestamp = None;
                                     } else {
-                                        let end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+                                        // Set the end timestamp to the current time
+                                        let end_time = SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .expect("Time went backwards")
+                                            .as_secs() as i64;
                                         config.launcher.discord_rpc.end_timestamp = Some(end_time);
                                     }
                 
+                                    // Update the configuration
                                     Config::update(config);
+                
+                                    // Reconnect the Discord RPC
+                                    if let Some(discord_rpc) = DISCORD_RPC_INSTANCE.lock().unwrap().as_ref() {
+                                        if let Err(err) = discord_rpc.reconnect() {
+                                            eprintln!("Failed to reconnect Discord RPC: {:?}", err);
+                                        }
+                                    }
+                                } else {
+                                    eprintln!("Failed to get config");
                                 }
                             }
                         }
